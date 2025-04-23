@@ -88,7 +88,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { messages }: { messages: CoreMessage[] } = req.body;
       console.log("messages", messages);  
-      const prompt = messages[messages.length - 1].content;
+      const lastMessageContent = messages[messages.length - 1].content;
+      // Ensure prompt is a string, handling potential complex content types
+      const prompt = typeof lastMessageContent === 'string' ? lastMessageContent : JSON.stringify(lastMessageContent);
       console.log("prompt", prompt);
 
       const result = streamText({
