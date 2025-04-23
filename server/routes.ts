@@ -106,8 +106,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 if (suppliers.length === 0) {
                   return "No suppliers found matching the criteria.";
                 }
-                const topResults = suppliers.slice(0, 3).map(s => s.name).join(', ');
-                return `Found ${suppliers.length} suppliers. Top results: ${topResults}`;
+                const formattedResults = suppliers.map(s => `- ${s.name}`).join('\n');
+                return `Found ${suppliers.length} suppliers:\n${formattedResults}`;
               } catch (toolError: any) {
                 console.error("Error during searchSuppliers tool execution:", toolError.message);
                 return `Error executing supplier search: ${toolError.message}`;
