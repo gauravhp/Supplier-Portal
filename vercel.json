@@ -3,18 +3,19 @@
   "builds": [
     {
       "src": "package.json",
-      "use": "@vercel/node",
-      "config": { "installCommand": "npm install" }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "dist/index.js"
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist/public"
+      }
     },
     {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "src": "dist/index.js",
+      "use": "@vercel/node"
     }
+  ],
+
+  "routes": [
+    { "src": "/api/(.*)", "dest": "dist/index.js" },
+    { "src": "/(.*)", "dest": "/$1" }
   ]
-} 
+}
