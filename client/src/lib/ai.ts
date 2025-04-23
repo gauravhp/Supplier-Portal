@@ -22,13 +22,6 @@ export type AIState = {
   handleUserMessage: (content: string) => Promise<void>;
 };
 
-export type SearchSuppliersArgs = {
-  queryType: "highestRisk" | "industry" | "riskCategory" | "all";
-  limit?: number;
-  industryName?: string;
-  riskCategoryName?: string;
-};
-
 // Initialize AI store with Zustand
 export const useAIStore = create<AIState>((set, get) => ({
   messages: [
@@ -37,11 +30,6 @@ export const useAIStore = create<AIState>((set, get) => ({
       role: "system",
       content: "You are a supplier risk management assistant. You can help users find and analyze suppliers based on their risk profiles, industries, and risk categories."
     },
-    {
-      id: nanoid(),
-      role: "assistant",
-      content: "Welcome to the Supplier Risk Search Tool! You can ask me questions about our suppliers like:\n\n- \"What are the top 3 suppliers with the highest risk scores?\"\n- \"Show me all suppliers in the healthcare industry\"\n- \"Which suppliers have financial compliance risks?\""
-    }
   ],
   currentSuppliers: [],
   isProcessing: false,
@@ -66,33 +54,87 @@ export const useAIStore = create<AIState>((set, get) => ({
     const state = get();
     
     // Add user message
-    state.addMessage({ role: "user", content });
-    
+    const newUserMessage: Message = { 
+      role: "user", 
+      content, 
+      id: nanoid(), 
+      createdAt: new Date() 
+    };
+    // Optimistically update messages
+    set((prevState) => ({ messages: [...prevState.messages, newUserMessage] }));
+
     // Set processing state
     state.setProcessing(true);
+    state.setError(null); // Clear previous errors
     
     try {
-      // Analyze the user message to determine what query to run
-      const queryType = determineQueryType(content);
+      // Prepare messages to send to the backend API
+      // Ensure the latest user message is included along with previous history
+      const previousMessages = state.messages.map(({ role, content }) => ({ role, content }));
+      // Make sure newUserMessage is included
+      const messagesToSend = [...previousMessages, { role: newUserMessage.role, content: newUserMessage.content }];
+
+      // Call the backend API endpoint
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ messages: messagesToSend }), // Send message history
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`API Error: ${response.status} ${errorBody || response.statusText}`);
+      }
       
-      // Run the supplier search function based on the determined query
-      const suppliers = await searchSuppliers(queryType);
+      if (!response.body) {
+        throw new Error("Response body is null");
+      }
+
+      // Process the streaming response
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let assistantResponse = "";
+      let assistantMessageId = nanoid();
+      let firstChunk = true;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        assistantResponse += chunk;
+
+        // Add/update assistant message in the store
+        if (firstChunk) {
+           set((prevState) => ({
+            messages: [
+              ...prevState.messages,
+              { role: "assistant", content: assistantResponse, id: assistantMessageId, createdAt: new Date() }
+            ]
+          }));
+          firstChunk = false;
+        } else {
+           set((prevState) => ({
+            messages: prevState.messages.map(msg => 
+              msg.id === assistantMessageId ? { ...msg, content: assistantResponse } : msg
+            )
+          }));
+        }
+      }
       
-      // Update the AI state with the search results
-      state.setCurrentSuppliers(suppliers);
+      // Optional: Clear current suppliers or update based on API response if needed
+      // state.setCurrentSuppliers([]); 
       
-      // Generate a response based on the query results
-      const response = generateResponse(queryType, suppliers);
-      
-      // Add the assistant's response to the messages
-      state.addMessage({ role: "assistant", content: response });
-      
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in AI processing:", error);
-      state.setError("I encountered an error while processing your request. Please try again.");
+      const errorMessage = error.message || "I encountered an error while processing your request. Please try again.";
+      state.setError(errorMessage);
+      // Add specific error message from backend if available
       state.addMessage({ 
         role: "assistant", 
-        content: "I encountered an error while processing your request. Please try again." 
+        content: errorMessage
       });
     } finally {
       // Reset processing state
@@ -100,134 +142,3 @@ export const useAIStore = create<AIState>((set, get) => ({
     }
   }
 }));
-
-// Function to search suppliers
-async function searchSuppliers(args: SearchSuppliersArgs): Promise<SupplierWithRiskCategories[]> {
-  try {
-    const searchQuery: SearchQuery = {
-      type: args.queryType,
-      limit: args.limit,
-      industry: args.industryName,
-      riskCategory: args.riskCategoryName
-    };
-    
-    const response = await apiRequest('POST', '/api/suppliers/search', searchQuery);
-    const suppliers: SupplierWithRiskCategories[] = await response.json();
-    return suppliers;
-  } catch (error) {
-    console.error("Error searching suppliers:", error);
-    throw error;
-  }
-}
-
-// Helper function to determine the query type from the user message
-function determineQueryType(userMessage: string): SearchSuppliersArgs {
-  const message = userMessage.toLowerCase();
-  
-  // Check for highest risk query
-  if (message.includes('highest risk') || (message.includes('top') && message.includes('risk'))) {
-    // Extract the limit if specified (e.g., "top 3")
-    const limitMatch = message.match(/top\s+(\d+)/i);
-    const limit = limitMatch ? parseInt(limitMatch[1]) : 3;
-    
-    return {
-      queryType: "highestRisk",
-      limit
-    };
-  }
-  
-  // Check for industry query
-  const industries = [
-    'healthcare', 'transportation', 'technology', 'agriculture', 
-    'manufacturing', 'financial services', 'electronics', 
-    'automotive', 'energy'
-  ];
-  
-  for (const industry of industries) {
-    if (message.includes(industry.toLowerCase())) {
-      return {
-        queryType: "industry",
-        industryName: industry
-      };
-    }
-  }
-  
-  // Check for risk category query
-  const riskCategories = [
-    'financial compliance', 'data security', 'regulatory',
-    'environmental', 'operational', 'legal', 'supply chain'
-  ];
-  
-  for (const category of riskCategories) {
-    if (message.includes(category.toLowerCase())) {
-      return {
-        queryType: "riskCategory",
-        riskCategoryName: category
-      };
-    }
-  }
-  
-  // Default to all suppliers
-  return {
-    queryType: "all"
-  };
-}
-
-// Helper function to generate a response based on the query type and results
-function generateResponse(
-  query: SearchSuppliersArgs, 
-  suppliers: SupplierWithRiskCategories[]
-): string {
-  if (suppliers.length === 0) {
-    return "I couldn't find any suppliers matching your criteria. Would you like to try a different search?";
-  }
-  
-  let response = "";
-  
-  if (query.queryType === "highestRisk") {
-    response = `Based on my search, here are the top ${query.limit || suppliers.length} suppliers with the highest risk scores:\n\n`;
-    
-    suppliers.forEach((supplier, index) => {
-      response += `${index + 1}. ${supplier.name} (Risk Score: ${supplier.riskScore})\n`;
-      response += `   Industry: ${supplier.industry} | Location: ${supplier.location}\n`;
-      response += `   Risk Categories: ${supplier.riskCategories.join(', ')}\n\n`;
-    });
-    
-    response += "These suppliers require close monitoring due to their high risk profiles. Would you like more detailed information about any of these suppliers or would you like to see suppliers with specific risk categories?";
-  } 
-  else if (query.queryType === "industry") {
-    response = `Here are all suppliers in the ${query.industryName} industry:\n\n`;
-    
-    suppliers.forEach((supplier, index) => {
-      response += `${index + 1}. ${supplier.name} (Risk Score: ${supplier.riskScore})\n`;
-      response += `   Location: ${supplier.location}\n`;
-      response += `   Risk Categories: ${supplier.riskCategories.join(', ')}\n\n`;
-    });
-    
-    response += "Would you like to know which of these suppliers have the highest risk scores or specific risk categories?";
-  } 
-  else if (query.queryType === "riskCategory") {
-    response = `Here are suppliers with ${query.riskCategoryName} risks:\n\n`;
-    
-    suppliers.forEach((supplier, index) => {
-      response += `${index + 1}. ${supplier.name} (Risk Score: ${supplier.riskScore})\n`;
-      response += `   Industry: ${supplier.industry} | Location: ${supplier.location}\n`;
-      response += `   All Risk Categories: ${supplier.riskCategories.join(', ')}\n\n`;
-    });
-    
-    response += "These suppliers have been flagged for the specified risk category. Would you like to sort them by risk score or see other risk categories?";
-  } 
-  else {
-    response = "Here are the suppliers in our database:\n\n";
-    
-    suppliers.forEach((supplier, index) => {
-      response += `${index + 1}. ${supplier.name} (Risk Score: ${supplier.riskScore})\n`;
-      response += `   Industry: ${supplier.industry} | Location: ${supplier.location}\n`;
-      response += `   Risk Categories: ${supplier.riskCategories.join(', ')}\n\n`;
-    });
-    
-    response += "Is there anything specific about these suppliers you'd like to know more about?";
-  }
-  
-  return response;
-}

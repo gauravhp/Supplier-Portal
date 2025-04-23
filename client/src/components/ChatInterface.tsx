@@ -36,6 +36,16 @@ export default function ChatInterface() {
     await handleUserMessage(message);
   };
 
+  // Helper function to extract result from message content
+  const extractResult = (content: string) => {
+    try {
+      const parsed = JSON.parse(content);
+      return parsed.result || content;
+    } catch {
+      return content;
+    }
+  };
+
   return (
     <div className="w-full md:w-1/2 flex flex-col bg-gray-50">
       <div 
@@ -43,7 +53,10 @@ export default function ChatInterface() {
         id="chat-messages"
       >
         {messages.filter(m => m.role !== "system").map((message) => (
-          <ChatMessage key={message.id} message={message} />
+          <ChatMessage 
+            key={message.id} 
+            message={{ ...message, content: extractResult(message.content) }} 
+          />
         ))}
         
         {/* Show processing state */}
