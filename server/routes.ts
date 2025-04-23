@@ -89,6 +89,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { messages }: { messages: CoreMessage[] } = req.body;
       console.log("messages", messages);  
       const prompt = messages[messages.length - 1].content;
+      console.log("prompt", prompt);
 
       const result = streamText({
         model: groq('llama3-8b-8192'),
@@ -118,6 +119,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const response = result.toDataStreamResponse();
       const logResponse = response.clone();
+      console.log("logResponse", logResponse);
 
       // Process the response to extract the tool result
       const textContent = await logResponse.text();
