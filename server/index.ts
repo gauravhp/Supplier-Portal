@@ -3,7 +3,9 @@ dotenv.config(); // Load environment variables from .env file
 
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+// Remove the direct import of setupVite and serveStatic from ./vite
+// import { setupVite, serveStatic, log } from "./vite";
+import { log } from "./logger"; // Import log from the new logger file
 
 const app = express();
 app.use(express.json());
@@ -47,19 +49,26 @@ app.use((req, res, next) => {
     const message = err.message || "Internal Server Error";
 
     res.status(status).json({ message });
-    throw err;
+    // It's generally better practice to log the error on the server
+    // instead of re-throwing it after sending a response.
+    console.error("Unhandled error:", err);
+    // throw err; // Avoid throwing after response sent
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  // Conditionally setup Vite or serve static files based on NODE_ENV
+  if (process.env.NODE_ENV === "development") {
+    // Dynamically import setupVite only in development
+    const { setupVite } = await import("./vite");
     await setupVite(app, server);
+    log("Vite dev server middleware enabled.");
   } else {
+    // Dynamically import serveStatic only in production
+    const { serveStatic } = await import("./vite");
     serveStatic(app);
+    log("Serving static files from public directory.");
   }
 
-  // ALWAYS serve the app on port 5000
+  // ALWAYS serve the app on port 5010
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5010;
