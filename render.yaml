@@ -14,7 +14,7 @@ services:
         value: production
       - key: GROQ_API_KEY
         sync: false
-  - type: static
+  - type: web
     name: supplier-risk-client
     rootDir: .
     plan: free
