@@ -1,6 +1,4 @@
-# render.yaml
 services:
-  # Backend API Service
   - type: web
     name: supplier-risk-api
     env: node
@@ -16,8 +14,6 @@ services:
         value: production
       - key: GROQ_API_KEY
         sync: false
-
-  # Frontend Static Site
   - type: static
     name: supplier-risk-client
     rootDir: .
@@ -28,12 +24,11 @@ services:
     outputDir: ./public
     routes:
       - type: rewrite
-        source: /api/:path*
-        destination: ${supplier-risk-api.url}/api/:path*
+        source: '/api/:path*'
+        destination: '${supplier-risk-api.url}/api/:path*'
       - type: rewrite
         source: /*
         destination: /index.html
-
 databases:
   - name: supplier-db
     plan: free
