@@ -10,15 +10,10 @@
       }
     },
     {
-      "src": "package.json",
-      "use": "@vercel/node",
-      "config": {
-        "buildCommand": "npm run build:server",
-        "entrypoint": "dist/index.js"
-      }
+      "src": "server/index.ts",
+      "use": "@vercel/node"
     }
   ],
-
   "routes": [
     { "src": "/api/(.*)", "dest": "dist/index.js" },
     { "src": "/(.*)", "dest": "public/index.html" }
