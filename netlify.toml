@@ -1,0 +1,22 @@
+[build]
+  # Command to build both client and server
+  command = "npm run build"
+  # Directory containing the built frontend static assets
+  publish = "public"
+  # Directory containing the built server function code
+  functions = "dist"
+
+# Redirect rule for API calls
+[[redirects]]
+  from = "/api/*"
+  # Route to the 'index' function (Netlify uses the filename as the function name)
+  # :splat captures the rest of the path (e.g., 'suppliers')
+  to = "/.netlify/functions/index/:splat"
+  status = 200 # Use 200 for function proxies
+
+# Redirect rule for Single Page Application (SPA) routing
+# This ensures direct navigation to frontend routes works
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
