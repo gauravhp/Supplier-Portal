@@ -17,20 +17,19 @@ services:
       - key: GROQ_API_KEY
         sync: false
 
-  # Frontend Static Site (Configured as Web Service)
-  - type: web
+  # Frontend Static Site
+  - type: static
     name: supplier-risk-client
     rootDir: .
     plan: free
     buildCommand: |
       npm install
       npm run build:client
-    startCommand: npm run start:client
+    outputDir: ./public
     routes:
       - type: rewrite
         source: /api/:path*
         destination: ${supplier-risk-api.url}/api/:path*
-
       - type: rewrite
         source: /*
         destination: /index.html
