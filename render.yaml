@@ -24,7 +24,7 @@ services:
         sync: false # Mark as secret, set manually in Render dashboard environment variables
 
   # Frontend UI Service (Static Site)
-  - type: static_site # Corrected type for Static Site service
+  - type: static # Corrected type for Static Site service
     name: supplier-risk-client # Name for the frontend service
     rootDir: . # Run commands from the monorepo root
     plan: free # Or your desired Render plan
