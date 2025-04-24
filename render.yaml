@@ -14,10 +14,11 @@ services:
         value: production
       - key: GROQ_API_KEY
         sync: false
-  - type: web
+  - type: static
     name: supplier-risk-client
     rootDir: .
     plan: free
+    publishDirectory: dist
     buildCommand: |
       npm install
       npm run build:client
