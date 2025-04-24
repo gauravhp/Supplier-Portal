@@ -68,6 +68,12 @@ app.use((req, res, next) => {
     await setupVite(app, server);
     log("Vite dev server middleware enabled.");
   } else {
+    // In production (when deployed to Render), the backend Web Service
+    // only needs to serve the API. The frontend static files will be
+    // handled by a separate Render Static Site service.
+    log("Production mode: API server only. Static files served by Render Static Site.");
+    // --- REMOVE START ---
+    /*
     // Serve static files directly in production
     const __dirname = path.dirname(new URL(import.meta.url).pathname);
     const publicPath = path.resolve(__dirname, "..", "public"); // Adjusted path relative to dist/index.js
@@ -87,6 +93,8 @@ app.use((req, res, next) => {
       res.sendFile(path.resolve(publicPath, "index.html"));
     });
     log("Serving static files from public directory.");
+    */
+    // --- REMOVE END ---
   }
 
   // ALWAYS serve the app on port 5010
@@ -94,9 +102,11 @@ app.use((req, res, next) => {
   // It is the only port that is not firewalled.
   const port = 5010;
   server.listen({
-    port,
-    host: "0.0.0.0",
+    // Render provides the PORT environment variable for Web Services
+    // Use it if available, otherwise default to 5010 for local production testing
+    port: process.env.PORT || port,
+    host: "0.0.0.0", // Important for Render
   }, () => {
-    log(`serving on port ${port}`);
+    log(`serving on port ${process.env.PORT || port}`); // Log the actual port being used
   });
 })();
