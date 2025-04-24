@@ -1,6 +1,6 @@
 # render.yaml
 services:
-  # Backend API Service (Web Service)
+  # Backend API Service (Node.js)
   - type: web
     name: supplier-risk-api
     env: node
@@ -15,24 +15,23 @@ services:
       - key: NODE_ENV
         value: production
       - key: GROQ_API_KEY
-        sync: false
+        sync: false  # Set this value in Render Dashboard
 
-  # Frontend UI Service (Static Site) - Corrected type
-  - type: static_site # Changed from 'static' to 'static_site'
+  # Frontend Service (Static Site) - Correct Configuration
+  - type: web  # Static sites now use "web" type with `static` environment
     name: supplier-risk-client
+    env: static  # Critical: Marks this as a static site
     rootDir: .
     plan: free
     buildCommand: |
       npm install
       npm run build:client
-    publishDir: ./public
+    publishDir: ./public  # Where your static files are built
     routes:
-      # Proxy API requests using service reference variable
       - type: rewrite
         source: /api/:path*
-        destination: ${supplier-risk-api.url}/api/:path* # Uses Render's service reference
+        destination: https://supplier-risk-api.onrender.com/api/:path*  # Hardcode URL or use Render variable
 
-      # SPA Fallback
       - type: rewrite
         source: /*
         destination: /index.html
