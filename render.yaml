@@ -1,51 +1,44 @@
 # render.yaml
-# Defines the services for deploying the Supplier Risk Tracker monorepo on Render.
-
 services:
   # Backend API Service (Web Service)
   - type: web
-    name: supplier-risk-api # Name for the backend service (used in frontend rewrite rule)
+    name: supplier-risk-api
     env: node
-    rootDir: . # Run commands from the monorepo root
-    plan: free # Or your desired Render plan
+    rootDir: .
+    plan: free
     buildCommand: |
       npm install
-      npm run build:server # Only build the server
-    startCommand: npm run start # Runs 'NODE_ENV=production node dist/index.js'
-    healthCheckPath: /api/health # Optional: Add a health check endpoint (e.g., GET /api/health returning 200 OK)
+      npm run build:server
+    startCommand: npm run start
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
       - key: GROQ_API_KEY
-        sync: false # Mark as secret, set manually in Render dashboard environment variables
+        sync: false
 
-  # Frontend UI Service (Static Site)
-  - type: static # Corrected type for Static Site service
-    name: supplier-risk-client # Name for the frontend service
-    rootDir: . # Run commands from the monorepo root
-    plan: free # Or your desired Render plan
+  # Frontend UI Service (Static Site) - Corrected type
+  - type: static_site  # Changed from 'static' to 'static_site'
+    name: supplier-risk-client
+    rootDir: .
+    plan: free
     buildCommand: |
       npm install
-      npm run build:client # Only build the client
-    # The directory containing the built static assets relative to rootDir
-    # vite.config.ts builds into 'public' at the repo root
+      npm run build:client
     publishDir: ./public
     routes:
-      # Rule 1: Proxy API requests to the backend service
-      # IMPORTANT: Ensure 'supplier-risk-api.onrender.com' matches your backend service URL
+      # Proxy API requests using service reference variable
       - type: rewrite
-        source: /api/:path* # Match any path starting with /api/
-        destination: https://supplier-risk-api.onrender.com/api/:path* # Proxy to the backend service URL
+        source: /api/:path*
+        destination: ${supplier-risk-api.url}/api/:path*  # Uses Render's service reference
 
-      # Rule 2: SPA Fallback - Serve index.html for any other route
+      # SPA Fallback
       - type: rewrite
-        source: /* # Match all other paths not matched above
-        destination: /index.html # Serve the main HTML file from publishDir
+        source: /*
+        destination: /index.html
 
-# Optional: Define the database service if you want Render to create it via the blueprint
-# If you already have a database, ensure the name matches the 'fromDatabase' key above.
 databases:
-  - name: supplier-db # Name of the database service
-    plan: free # Or your desired Render plan
-    databaseName: supplier_risk_db # Optional: specify the database name within the instance
-    postgresMajorVersion: 16 # Optional: Specify PostgreSQL version if needed
+  - name: supplier-db
+    plan: free
+    databaseName: supplier_risk_db
+    postgresMajorVersion: 16
