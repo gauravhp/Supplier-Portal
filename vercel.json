@@ -5,12 +5,17 @@
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
+        "buildCommand": "npm run build:client",
         "distDir": "public"
       }
     },
     {
-      "src": "dist/index.js",
-      "use": "@vercel/node"
+      "src": "package.json",
+      "use": "@vercel/node",
+      "config": {
+        "buildCommand": "npm run build:server",
+        "entrypoint": "dist/index.js"
+      }
     }
   ],
 
