@@ -18,7 +18,7 @@ services:
         sync: false
 
   # Frontend UI Service (Static Site) - Corrected type
-  - type: static_site  # Changed from 'static' to 'static_site'
+  - type: static_site # Changed from 'static' to 'static_site'
     name: supplier-risk-client
     rootDir: .
     plan: free
@@ -30,7 +30,7 @@ services:
       # Proxy API requests using service reference variable
       - type: rewrite
         source: /api/:path*
-        destination: ${supplier-risk-api.url}/api/:path*  # Uses Render's service reference
+        destination: ${supplier-risk-api.url}/api/:path* # Uses Render's service reference
 
       # SPA Fallback
       - type: rewrite
