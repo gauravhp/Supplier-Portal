@@ -16,10 +16,6 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: DATABASE_URL
-        fromDatabase:
-          name: supplier-db # IMPORTANT: Name of your Render PostgreSQL database service
-          property: connectionString
       - key: GROQ_API_KEY
         sync: false # Mark as secret, set manually in Render dashboard environment variables
 
