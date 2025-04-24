@@ -21,7 +21,6 @@ services:
     buildCommand: |
       npm install
       npm run build:client
-    outputDir: ./public
     routes:
       - type: rewrite
         source: '/api/:path*'
