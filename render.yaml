@@ -15,22 +15,22 @@ services:
       - key: NODE_ENV
         value: production
       - key: GROQ_API_KEY
-        sync: false  # Set this value in Render Dashboard
+        sync: false
 
-  # Frontend Service (Static Site) - Correct Configuration
-  - type: web  # Static sites now use "web" type with `static` environment
+  # Frontend Static Site (Corrected Configuration)
+  - type: web
     name: supplier-risk-client
-    env: static  # Critical: Marks this as a static site
+    env: static  # Required for static sites
     rootDir: .
     plan: free
     buildCommand: |
       npm install
       npm run build:client
-    publishDir: ./public  # Where your static files are built
+    staticDir: ./public  # Replace "publishDir" with "staticDir"
     routes:
       - type: rewrite
         source: /api/:path*
-        destination: https://supplier-risk-api.onrender.com/api/:path*  # Hardcode URL or use Render variable
+        destination: ${supplier-risk-api.url}/api/:path*  # Dynamic reference
 
       - type: rewrite
         source: /*
