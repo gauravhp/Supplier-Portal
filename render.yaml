@@ -14,8 +14,9 @@ services:
         value: production
       - key: GROQ_API_KEY
         sync: false
-  - type: static
-    name: supplier-risk-client
+
+staticSites:
+  - name: supplier-risk-client
     rootDir: .
     plan: free
     publishDirectory: dist
@@ -29,6 +30,7 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+
 databases:
   - name: supplier-db
     plan: free
